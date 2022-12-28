@@ -1,10 +1,13 @@
-const rows = 6, cols = 22;
+const rows = 6, cols = 22; // keyboard grid size is 22 by 6
+let scl = 60; // Scale up the canvas so drawing isn't weird
+const width = cols * scl, height = rows * scl;
 
 let canvas;
 let chromaSDK;
 let previewGrid = createPreviewGrid();
 let previewCanvas;
 
+// create a p5 instance for the preview canvas
 const prevC = (p) => {
   p.setup = () => {
     p.createCanvas(22 * scl, 6 * scl).parent('#main');
@@ -15,7 +18,8 @@ const prevC = (p) => {
   };
 };
 
-function chromaInit(fps, scl) {
+function chromaInit(fps, scale) { // creates a connection to the physical Razer keyboard
+  if (scale) scl = scale;
   chromaSDK = new ChromaSDK();
   chromaSDK.init();
   canvas = createCanvas(cols, rows).hide();
@@ -28,14 +32,14 @@ function onUnload() {
   chromaSDK.uninit();
 }
 
-function createPreviewGrid() {
+function createPreviewGrid() { // create a DOM grid of divs
   const wrapper = document.querySelector('#wrapper');
   const grid = [];
   for (let i = 0; i < rows; i++) {
     grid[i] = [];
     for (let j = 0; j < cols; j++) {
       const cell = document.createElement('div');
-      cell.innerHTML = KEYCAP_TEXT[i][j];
+      cell.innerHTML = KEYCAP_TEXT[i][j]; // add the key text to each cell
       wrapper.appendChild(cell);
       grid[i][j] = cell;
     }
@@ -44,7 +48,7 @@ function createPreviewGrid() {
   return grid;
 }
 
-function RGBToHex(r, g, b) {
+function RGBToHex(r, g, b) { // convert RGB to hex
   const newR = r.toString(16).length == 1 ? "0" + r : r.toString(16);
   const newG = g.toString(16).length == 1 ? "0" + g : g.toString(16);
   const newB = b.toString(16).length == 1 ? "0" + b : b.toString(16);
@@ -52,7 +56,7 @@ function RGBToHex(r, g, b) {
   return parseInt(`0x${newB}${newG}${newR}`);
 }
 
-function updatePreviewGrid() {
+function updatePreviewGrid() { // updates the preview grid and sends an api request to update the keyboard lighting
   const keyGrid = Array(rows).fill(0).map(() => Array(cols).fill(0));
   loadPixels();
   for (let y = 0; y < rows; y++) {
@@ -65,4 +69,10 @@ function updatePreviewGrid() {
   }
 
   chromaSDK.createKeyboardEffect('CHROMA_CUSTOM', keyGrid);
+}
+
+function draw() { // p5 draw loop
+  scale(1 / scl); // scale the drawings back down
+  if (typeof drawChroma == 'function') drawChroma(); // draw loop in the main file
+  updatePreviewGrid(); // send pixel data to keyboard
 }
